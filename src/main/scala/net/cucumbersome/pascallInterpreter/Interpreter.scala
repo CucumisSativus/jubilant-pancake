@@ -5,8 +5,9 @@ import cats.mtl.MonadState
 object Interpreter {
 
   sealed trait InterpreterError
-  case object ParsingError                 extends InterpreterError
-  case class UnexpectedToken(token: Token) extends InterpreterError
+  case class ParsingError(failedAt: Seq[Char])           extends InterpreterError
+  case class UnexpectedToken(token: Token)               extends InterpreterError
+  case class ExpectedMathematicalOperator(butGot: Token) extends InterpreterError
 
   case class InterpreterState(input: List[Char], currentToken: Option[Token])
 
@@ -19,7 +20,8 @@ object Interpreter {
       case num :: tail if num.isDigit =>
         F.pure(TokenizerOutput(tail, Token.IntNumber(num.toInt - 48)))
       case '+' :: tail => F.pure(TokenizerOutput(tail, Token.Plus))
-      case _           => F.raiseError(ParsingError)
+      case '-' :: tail => F.pure(TokenizerOutput(tail, Token.Minus))
+      case failed      => F.raiseError(ParsingError(failed))
     }
 
   def eat[F[_]: Monad](condition: Token => Boolean)(implicit F: CanFail[F],
@@ -39,15 +41,34 @@ object Interpreter {
 
   }
 
+  def getMathOperator[F[_]: Monad: WithState](implicit F: CanFail[F]): F[MatematicalOperator] = {
+    def toOperator(token: Token): F[MatematicalOperator] = token match {
+      case t: MatematicalOperator => F.pure(t)
+      case o                      => F.raiseError(ExpectedMathematicalOperator(o))
+    }
+
+    for {
+      token        <- eat[F](_.isMathematicalOperator)
+      mathOperator <- toOperator(token)
+    } yield mathOperator
+  }
+
+  def handleMathOperation(left: Int, right: Int, operation: MatematicalOperator): Token.IntNumber =
+    operation match {
+      case Token.Plus  => Token.IntNumber(left + right)
+      case Token.Minus => Token.IntNumber(left - right)
+    }
+
   def evaluate[F[_]: CanFail](input: String)(implicit S: WithState[F]): F[Token] = {
-    for{
-      _ <- S.set(InterpreterState(input.toSeq.toList, None))
-      firstDigit <- eat[F](_.isInstanceOf[Token.IntNumber])
-      _ <- eat[F](_.isInstanceOf[Token.Plus.type])
+    for {
+      _           <- S.set(InterpreterState(input.toSeq.toList, None))
+      firstDigit  <- eat[F](_.isInstanceOf[Token.IntNumber])
+      operator    <- getMathOperator[F]
       secondDigit <- eat[F](_.isInstanceOf[Token.IntNumber])
     } yield {
       (firstDigit, secondDigit) match {
-        case (Token.IntNumber(value), Token.IntNumber(value2)) => Token.IntNumber(value + value2)
+        case (Token.IntNumber(left), Token.IntNumber(right)) =>
+          handleMathOperation(left, right, operator)
         case _ => Token.Eof
       }
     }

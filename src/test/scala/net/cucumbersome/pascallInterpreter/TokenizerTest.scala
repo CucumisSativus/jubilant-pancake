@@ -19,6 +19,9 @@ class TokenizerTest extends org.specs2.mutable.Specification {
       "reading +" >> {
         run(List('+')) should_=== Right(TokenizerOutput(List.empty, Token.Plus))
       }
+      "reading -" >> {
+        run(List('-')) should_=== Right(TokenizerOutput(List.empty, Token.Minus))
+      }
     }
   }
 

@@ -1,19 +1,19 @@
 package net.cucumbersome.pascallInterpreter
 
+sealed trait MatematicalOperator
+
 sealed trait Token{
   def isMathematicalOperator: Boolean = {
-    this match {
-      case Token.Plus | Token.Minus => true
-      case _ => false
-    }
+    this.isInstanceOf[MatematicalOperator]
   }
 }
 
+
 object Token{
   case class IntNumber(value: Int) extends Token
-  case object Plus extends Token
+  case object Plus extends Token with MatematicalOperator
   case object Eof extends Token
-  case object Minus extends Token
+  case object Minus extends Token with MatematicalOperator
 
 }
 
