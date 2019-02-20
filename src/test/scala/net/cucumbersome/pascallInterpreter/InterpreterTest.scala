@@ -21,6 +21,17 @@ class InterpreterTest extends org.specs2.mutable.Specification {
         run("3-1", Token.IntNumber(2))
       }
 
+      "multi digit + other multi digit" >> {
+        run("12+15", Token.IntNumber(27))
+      }
+
+      "multi digit - other multi digit" >> {
+        run("345-123", Token.IntNumber(222))
+      }
+
+      "multi digit + with whitepsace" >> {
+        run("123 + 222", Token.IntNumber(345))
+      }
     }
   }
 

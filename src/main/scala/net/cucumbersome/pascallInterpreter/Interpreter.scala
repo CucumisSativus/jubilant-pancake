@@ -17,11 +17,14 @@ object Interpreter {
   def getNextToken[F[_]](input: List[Char])(implicit F: CanFail[F]): F[TokenizerOutput] =
     input match {
       case Nil => F.pure(TokenizerOutput(List.empty[Char], Token.Eof))
-      case num :: tail if num.isDigit =>
-        F.pure(TokenizerOutput(tail, Token.IntNumber(num.toInt - 48)))
-      case '+' :: tail => F.pure(TokenizerOutput(tail, Token.Plus))
-      case '-' :: tail => F.pure(TokenizerOutput(tail, Token.Minus))
-      case failed      => F.raiseError(ParsingError(failed))
+      case num :: _ if num.isDigit =>
+        val number = input.takeWhile(_.isDigit).mkString
+        val res    = input.dropWhile(_.isDigit)
+        F.pure(TokenizerOutput(res, Token.IntNumber(number.toInt)))
+      case '+' :: tail                   => F.pure(TokenizerOutput(tail, Token.Plus))
+      case '-' :: tail                   => F.pure(TokenizerOutput(tail, Token.Minus))
+      case ws :: tail if ws.isWhitespace => getNextToken(tail)(F)
+      case failed                        => F.raiseError(ParsingError(failed))
     }
 
   def eat[F[_]: Monad](condition: Token => Boolean)(implicit F: CanFail[F],

@@ -15,6 +15,9 @@ class TokenizerTest extends org.specs2.mutable.Specification {
         run(List('2')) should_=== Right(TokenizerOutput(List.empty, Token.IntNumber(2)))
         run(List('3')) should_=== Right(TokenizerOutput(List.empty, Token.IntNumber(3)))
         run(List('4')) should_=== Right(TokenizerOutput(List.empty, Token.IntNumber(4)))
+        run(List('1', '4')) should_=== Right(TokenizerOutput(List.empty, Token.IntNumber(14)))
+        run(List(' ', '1', '4')) should_=== Right(TokenizerOutput(List.empty, Token.IntNumber(14)))
+
       }
       "reading +" >> {
         run(List('+')) should_=== Right(TokenizerOutput(List.empty, Token.Plus))
